@@ -23,6 +23,9 @@ os.makedirs(DEMO, exist_ok=True)
 DEVICE = "mps" if torch.backends.mps.is_available() else "cpu"
 print("device:", DEVICE)
 
+torch.manual_seed(0)
+np.random.seed(0)
+
 PATCH = 160
 N_TRAIN_SCENES = 40
 N_CROPS = 6
@@ -69,8 +72,8 @@ class UNet(nn.Module):
 
 
 def normalize(img):
-    """Cielo restado + normalización a [0,1]."""
-    return np.clip((img - sim.SKY) / 2000.0, 0, 1)
+    """Normalización a [0,1] (las escenas van SIN cielo: fondo ~0)."""
+    return np.clip(img / 2000.0, 0, 1)
 
 
 # 1) dataset: escenas variadas -> parches aleatorios
@@ -92,7 +95,13 @@ print(f"dataset: {X.shape[0]} parches de {PATCH}x{PATCH}")
 # 2) entrenamiento
 model = UNet().to(DEVICE)
 opt = torch.optim.Adam(model.parameters(), lr=LR)
-loss_fn = nn.L1Loss()
+
+def weighted_loss(pred, xb, yb):
+    """L1 ponderado: castiga no eliminar estrellas y no preservar la señal débil."""
+    stars = (xb - yb) > 0.01          # zonas con estrellas
+    signal = yb > 0.02                # galaxia/nebulosa/estrellas (señal débil)
+    w = 1.0 + 3.0 * stars.float() + 6.0 * signal.float()
+    return (w * (pred - yb).abs()).mean()
 
 n = len(X)
 for epoch in range(EPOCHS):
@@ -103,7 +112,7 @@ for epoch in range(EPOCHS):
         idx = perm[i:i + BATCH]
         xb, yb = X[idx].to(DEVICE), Y[idx].to(DEVICE)
         opt.zero_grad()
-        loss = loss_fn(model(xb), yb)
+        loss = weighted_loss(model(xb), xb, yb)
         loss.backward()
         opt.step()
         tot += loss.item() * len(idx)
@@ -120,7 +129,8 @@ stack_in = with_stars + np.random.default_rng(9).normal(0, 3.0, with_stars.shape
 inp = torch.tensor(normalize(stack_in)[None, None]).float().to(DEVICE)
 with torch.no_grad():
     pred = model(inp).cpu().numpy()[0, 0]
-pred_img = np.clip(pred, 0, 1) * 2000.0 + sim.SKY
+# sin cielo: los demás paneles van en escala de señal (fondo ~0)
+pred_img = np.clip(pred, 0, 1) * 2000.0
 
 # referencia: inpaint clásico (el método actual)
 from process import remove_stars
@@ -131,10 +141,10 @@ def to_uint8(img):
     from process import asinh_stretch
     return (asinh_stretch(img, sky_p) * 255).astype(np.uint8)
 
-# métricas: residuo de estrellas (diferencia vs verdad en zonas con estrellas)
+# métricas: residuo de estrellas (comparar en la MISMA escala: sin cielo)
 star_mask = (without < with_stars - 40)
-res_inpaint = np.abs(starless_cl - (without + sim.SKY))[star_mask].mean()
-res_unet = np.abs(pred_img - (without + sim.SKY))[star_mask].mean()
+res_inpaint = np.abs(starless_cl - without)[star_mask].mean()
+res_unet = np.abs(pred_img - without)[star_mask].mean()
 print(f"\nresiduo medio en estrellas | inpaint: {res_inpaint:.1f} | U-Net: {res_unet:.1f}")
 
 # 4) composición
@@ -142,7 +152,7 @@ panels = {
     "entrada (con estrellas)": to_uint8(stack_in),
     "inpaint clásico": to_uint8(starless_cl),
     "nuestro StarNet (U-Net)": to_uint8(pred_img),
-    "verdad sin estrellas": to_uint8(without + sim.SKY),
+    "verdad sin estrellas": to_uint8(without),
 }
 pw, ph = 400, 300
 grid = Image.new('RGB', (pw * 2, ph * 2), (5, 5, 12))
