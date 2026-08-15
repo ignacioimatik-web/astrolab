@@ -1,0 +1,12 @@
+# entornos
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# datos generados (grandes)
+demo/subs.npy
+demo/truth.npy
+
+# macOS
+.DS_Store
