@@ -47,10 +47,16 @@ def _upload_file(url, fields, filepath):
 
 
 def solve_nova(image_path, timeout=300):
-    """Resuelve la imagen con nova.astrometry.net (API anónima)."""
-    sess = _post_json(f"{NOVA}/login", {"apikey": "anonymous"})["session"]
-    up = _upload_file(f"{NOVA}/upload", {"session": sess, "allow_commercial_usage": "n",
-                                         "publicly_visible": "n"}, image_path)
+    """Resuelve la imagen con nova.astrometry.net (clave desde .nova_key o env)."""
+    key_file = os.path.join(HERE, ".nova_key")
+    api_key = os.environ.get("NOVA_API_KEY")
+    if not api_key and os.path.exists(key_file):
+        api_key = open(key_file).read().strip()
+    if not api_key:
+        return None, "nova: falta API key (.nova_key o NOVA_API_KEY)"
+    sess = _post_json(f"{NOVA}/login", {"apikey": api_key})["session"]
+    meta = json.dumps({"session": sess, "allow_commercial_usage": "n", "publicly_visible": "n"})
+    up = _upload_file(f"{NOVA}/upload", {"request-json": meta}, image_path)
     subid = up.get("subid")
     if not subid:
         return None, f"upload falló: {up}"

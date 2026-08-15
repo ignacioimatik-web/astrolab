@@ -14,3 +14,4 @@ demo/*.fits
 weights/
 astap/data/
 astap/*.fits
+.nova_key
