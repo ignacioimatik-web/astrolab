@@ -48,6 +48,46 @@ def build_scene(seed=42, seeing=SEEING):
     return scene
 
 
+def random_scene(seed):
+    """Escena aleatoria para entrenar (galaxia, nebulosa y estrellas en posiciones variables).
+    Devuelve (con_estrellas, sin_estrellas), ambas con seeing."""
+    rng = np.random.default_rng(seed)
+    base = np.zeros((H, W), dtype=np.float64)
+
+    # galaxia en posición aleatoria
+    gx = rng.uniform(180, W - 180)
+    gy = rng.uniform(150, H - 150)
+    yy, xx = np.mgrid[0:H, 0:W]
+    r2 = (xx - gx) ** 2 + (yy - gy) ** 2
+    f = rng.uniform(0.7, 1.3)
+    base += f * 900 * np.exp(-r2 / (2 * 14 ** 2))
+    base += f * 260 * np.exp(-r2 / (2 * 55 ** 2))
+    base += f * 70 * np.exp(-r2 / (2 * 110 ** 2))
+    for ang in [rng.uniform(0, np.pi), 0]:
+        off = rng.uniform(30, 50)
+        r2b = (xx - (gx + off * np.cos(ang))) ** 2 + (yy - (gy + off * np.sin(ang))) ** 2
+        base += f * 55 * np.exp(-r2b / (2 * 16 ** 2))
+
+    # nebulosa en posición aleatoria
+    nx = rng.uniform(150, W - 150)
+    ny = rng.uniform(120, H - 120)
+    r2n = (xx - nx) ** 2 + (yy - ny) ** 2
+    fn = rng.uniform(0.6, 1.4)
+    base += fn * 700 * np.exp(-r2n / (2 * 10 ** 2))
+    base += fn * 150 * np.exp(-r2n / (2 * 45 ** 2))
+
+    # estrellas (solo en la versión "con estrellas")
+    n_stars = int(rng.integers(30, 70))
+    with_stars = base.copy()
+    for _ in range(n_stars):
+        with_stars = add_star(with_stars, rng.uniform(15, W - 15), rng.uniform(15, H - 15),
+                              rng.uniform(40, 2500), rng.uniform(0.8, 1.8))
+    if SEEING:
+        with_stars = gaussian_filter(with_stars, SEEING)
+        base = gaussian_filter(base, SEEING)
+    return with_stars, base
+
+
 def make_sub(scene, seed=None):
     rng = np.random.default_rng(seed)
     img = rng.poisson(SKY + scene).astype(np.float64)
