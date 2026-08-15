@@ -366,7 +366,7 @@ def validate(quiet=False):
         return r.stdout.strip() or None
 
     add("gphoto2 (D610)", bool(which("gphoto2")), which("gphoto2") or "brew install gphoto2")
-    add("siril (apilado)", bool(which("siril")), which("siril") or "brew install --cask siril")
+    add("siril (apilado)", bool(which("siril")), which("siril") or "brew install siril (fórmula, NO --cask)")
     astap = os.path.join(ROOT, "astap", "astap_cli")
     add("astap_cli", os.path.exists(astap), astap)
     db = os.path.join(ROOT, "astap", "data")
