@@ -80,9 +80,17 @@ print(f"  sin gradiente : std={s_clean:.2f}  inclinación={t_clean:.2f}")
 print(f"  con gradiente : std={s_grad:.2f}  inclinación={t_grad:.2f}")
 print(f"  tras GraXpert : std={s_gx:.2f}  inclinación={t_gx:.2f}")
 
-# 5) composición
+# 5) composición (estirado por panel: cada imagen con su propio nivel de cielo)
+def find_empty_region(scene, size=110):
+    for y0 in range(0, sim.H - size, 40):
+        for x0 in range(0, sim.W - size, 40):
+            if scene[y0:y0 + size, x0:x0 + size].max() < 3:
+                return slice(y0, y0 + size), slice(x0, x0 + size)
+empty = find_empty_region(truth)
+
 def to_uint8(img):
-    return (asinh_stretch(img, sim.SKY) * 255).astype(np.uint8)
+    sky_panel = float(np.median(img[empty]))
+    return (asinh_stretch(img, sky_panel) * 255).astype(np.uint8)
 
 panels = {
     "apilado limpio (referencia)": to_uint8(stack),

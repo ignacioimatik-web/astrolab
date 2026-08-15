@@ -10,3 +10,4 @@ demo/truth.npy
 
 # macOS
 .DS_Store
+demo/*.fits
