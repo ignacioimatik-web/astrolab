@@ -15,3 +15,4 @@ weights/
 astap/data/
 astap/*.fits
 .nova_key
+platform_data/\nplatform/.nas_key

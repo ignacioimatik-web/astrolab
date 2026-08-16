@@ -87,6 +87,22 @@ def fail(job, err):
     write_job(job)
 
 # ---------------------------------------------------------------- helpers imagen/FITS
+def export_to_nas(job):
+    """Sube los resultados del job al NAS (SMB directo, inmune a TCC)."""
+    try:
+        import nas_export
+        odir = job_path(job["id"]) / "output"
+        files = sorted(odir.glob("*.png")) + sorted(odir.glob("*.fits"))
+        if not files:
+            return
+        for f in files:
+            if f.name == "preview.png" and len(files) > 1:
+                continue  # el preview va junto al resultado principal
+            nas_export.upload(str(f))
+        job["log"].append("📁 Exportado al NAS (AstroLab/<fecha>/)")
+    except Exception as e:
+        job["log"].append(f"⚠️ NAS no disponible: {str(e)[:120]}")
+
 def fits_preview(fits_path, out_png, stretch="asinh"):
     """FITS -> PNG con estirado asinh (fondo oscuro), listo para la galería."""
     from astropy.io import fits
@@ -154,7 +170,9 @@ def run_step(job):
         if r.returncode != 0 and not os.path.exists(out):
             raise RuntimeError(r.stderr[-400:] or "GraXpert falló")
         fits_preview(out, str(job_path(job["id"]) / "output" / "preview.png"))
-        set_progress(job, 100, "Listo: gradientes eliminados")
+        set_progress(job, 90, "Exportando al NAS...")
+        export_to_nas(job)
+        set_progress(job, 100, "Listo: gradientes eliminados (+ NAS)")
 
     elif step == "starless" or step == "denoise":
         import torch
@@ -190,6 +208,8 @@ def run_step(job):
         from PIL import Image
         Image.fromarray((np2.clip(comp, 0, 1) * 255).astype(np.uint8)).convert("RGB").save(
             str(job_path(job["id"]) / "output" / "preview.png"))
+        set_progress(job, 90, "Exportando al NAS...")
+        export_to_nas(job)
         set_progress(job, 100, "Listo")
 
     elif step == "upscale":
@@ -218,6 +238,8 @@ def run_step(job):
         out = out[:, :, ::-1]
         outp = str(job_path(job["id"]) / "output" / "upscaled_4x.png")
         Image.fromarray(out).save(outp)
+        set_progress(job, 90, "Exportando al NAS...")
+        export_to_nas(job)
         set_progress(job, 100, "Listo: imagen 4x")
 
     elif step == "platesolve":
@@ -244,6 +266,8 @@ def run_step(job):
         set_progress(job, 90, f"Resuelto: RA {info['ra']}° Dec {info['dec']}°")
         if ext in (".png", ".jpg", ".jpeg"):
             shutil.copy(inp, job_path(job["id"]) / "output" / "preview.png")
+        set_progress(job, 95, "Exportando al NAS...")
+        export_to_nas(job)
         set_progress(job, 100, "Listo")
 
     elif step == "stack":
@@ -260,6 +284,8 @@ def run_step(job):
             raise RuntimeError(r.stderr[-300:] or "Siril no produjo resultado")
         shutil.copy(res, odir / "stacked.fits")
         fits_preview(str(odir / "stacked.fits"), str(odir / "preview.png"))
+        set_progress(job, 95, "Exportando al NAS...")
+        export_to_nas(job)
         set_progress(job, 100, "Listo: subs apilados")
 
     else:
