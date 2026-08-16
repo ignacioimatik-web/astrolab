@@ -350,6 +350,29 @@ def delete_job(jid: str):
     shutil.rmtree(job_path(jid), ignore_errors=True)
     return {"ok": True}
 
+@app.get("/api/gallery")
+def gallery():
+    """Todos los previews de resultados, ordenados del más reciente al más antiguo."""
+    items = []
+    for d in sorted(JOBS.iterdir(), reverse=True):
+        j = read_job(d.name)
+        if not j or j["status"] != "done":
+            continue
+        odir = job_path(d.name) / "output"
+        if not odir.exists():
+            continue
+        for f in sorted(odir.iterdir()):
+            if f.suffix.lower() not in (".png", ".jpg", ".jpeg"):
+                continue
+            items.append({
+                "job": j["id"], "step": j["step"], "step_name": j["step_name"],
+                "name": f.name, "size": f.stat().st_size,
+                "created": j.get("created", ""),
+                "files": j.get("files", []),
+                "url": f"/api/jobs/{j['id']}/file/{f.name}",
+            })
+    return items
+
 @app.get("/api/health")
 def health():
     return {"ok": True, "jobs_queued": len(QUEUE), "time": now_iso()}

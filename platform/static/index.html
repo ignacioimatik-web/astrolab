@@ -78,6 +78,24 @@
   .empty { text-align:center; color:#475569; font-size:.75rem; padding:2rem 0; }
   .err { color:#fb7185; font-size:.72rem; margin-top:.5rem; }
   footer { text-align:center; margin-top:2rem; color:#475569; font-size:.68rem; }
+
+  /* galería */
+  .g-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:.9rem; }
+  .g-item { background:#0f172a; border:1px solid #1e293b; border-radius:.75rem; overflow:hidden; cursor:pointer; transition:.15s; }
+  .g-item:hover { border-color:#34d399; transform:translateY(-2px); }
+  .g-item img { width:100%; height:150px; object-fit:cover; display:block; background:#020617; }
+  .g-item .g-meta { padding:.6rem .75rem; font-size:.66rem; color:#94a3b8; }
+  .g-item .g-meta b { color:#e2e8f0; font-size:.72rem; display:block; margin-bottom:.2rem; }
+
+  /* lightbox */
+  .lightbox { display:none; position:fixed; inset:0; background:rgba(2,6,23,.92); z-index:50;
+              align-items:center; justify-content:center; padding:2rem; }
+  .lightbox.open { display:flex; }
+  .lb-box { max-width:95vw; max-height:92vh; display:flex; flex-direction:column; gap:1rem; align-items:center; }
+  .lb-box img { max-width:100%; max-height:80vh; border-radius:.75rem; border:1px solid #1e293b; }
+  .lb-meta { color:#94a3b8; font-size:.75rem; text-align:center; }
+  .lb-meta a { color:#22d3ee; text-decoration:none; margin-left:.6rem; border:1px solid rgba(34,211,238,.35);
+               padding:.25rem .6rem; border-radius:.4rem; font-size:.68rem; }
 </style>
 </head>
 <body>
@@ -91,7 +109,8 @@
   <nav>
     <button class="tab active" data-t="plan">🌙 Plan de noche</button>
     <button class="tab" data-t="process">🛠️ Procesar</button>
-    <button class="tab" data-t="gallery">🖼️ Trabajos</button>
+    <button class="tab" data-t="jobs">🖼️ Trabajos</button>
+    <button class="tab" data-t="gallery">📸 Resultados</button>
   </nav>
 
   <!-- PLAN -->
@@ -129,6 +148,22 @@
     </div>
   </section>
 
+  <!-- GALERÍA / RESULTADOS -->
+  <section class="panel" id="p-gallery">
+    <div class="card">
+      <h2>Resultados <span class="tag">todas las imágenes procesadas</span></h2>
+      <div class="g-grid" id="g-grid"><div class="empty">Cargando…</div></div>
+    </div>
+  </section>
+
+  <!-- LIGHTBOX -->
+  <div class="lightbox" id="lightbox" onclick="if(event.target===this)closeLb()">
+    <div class="lb-box">
+      <img id="lb-img" src="" alt="">
+      <div class="lb-meta" id="lb-meta"></div>
+    </div>
+  </div>
+
   <footer>AstroLab v7.2 · NexStar 6 SE + ASI715MC + D610 · Bortle 2-3</footer>
 </div>
 
@@ -143,8 +178,30 @@ document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
   t.classList.add('active');
   $('#p-' + t.dataset.t).classList.add('active');
   if (t.dataset.t === 'plan') loadPlan();
-  if (t.dataset.t === 'gallery') loadJobs();
+  if (t.dataset.t === 'jobs') loadJobs();
+  if (t.dataset.t === 'gallery') loadGallery();
 });
+
+// galería + lightbox
+async function loadGallery() {
+  try {
+    const r = await fetch('/api/gallery'); const items = await r.json();
+    const g = $('#g-grid');
+    if (!items.length) { g.innerHTML = '<div class="empty">Aún no hay resultados. Procesa tu primera imagen en "Procesar". 🔭</div>'; return; }
+    g.innerHTML = items.map(it => `
+      <div class="g-item" onclick="openLb('${it.url}','${escapeHtml(it.step_name)}','${escapeHtml((it.files||[]).join(', '))}','${it.job}')">
+        <img src="${it.url}" loading="lazy">
+        <div class="g-meta"><b>${it.step_name}</b>${it.name} · ${(it.size/1048576).toFixed(2)} MB</div>
+      </div>`).join('');
+  } catch (e) { $('#g-grid').innerHTML = '<div class="empty">❌ ' + e.message + '</div>'; }
+}
+function openLb(url, step, files, job) {
+  $('#lb-img').src = url;
+  $('#lb-meta').innerHTML = `<b style="color:#e2e8f0">${step}</b> · ${files}<a href="${url}" download>⬇ Descargar</a>`;
+  $('#lightbox').classList.add('open');
+}
+function closeLb() { $('#lightbox').classList.remove('open'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLb(); });
 
 // steps
 fetch('/api/steps').then(r => r.json()).then(steps => {
@@ -188,10 +245,12 @@ $('#go').onclick = async () => {
     const j = await r.json();
     if (j.error) throw new Error(j.error);
     $('#drop-err').textContent = '';
+    selFiles = [];
+    $('#files').textContent = '';
     document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
     document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
-    document.querySelector('.tab[data-t="gallery"]').classList.add('active');
-    $('#p-gallery').classList.add('active');
+    document.querySelector('.tab[data-t="jobs"]').classList.add('active');
+    $('#p-jobs').classList.add('active');
     loadJobs();
     poll(j.id);
   } catch (e) { $('#drop-err').textContent = '❌ ' + e.message; }
