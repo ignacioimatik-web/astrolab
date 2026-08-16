@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.astrolab.platform</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/ignacioestevez/AstroLab/.venv/bin/python</string>
+        <string>-u</string>
+        <string>/Users/ignacioestevez/AstroLab/platform/server.py</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/ignacioestevez/AstroLab</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>ASTROLAB_HOST</key>
+        <string>0.0.0.0</string>
+        <key>ASTROLAB_PORT</key>
+        <string>8010</string>
+    </dict>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/Users/ignacioestevez/AstroLab/platform_data/server.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/ignacioestevez/AstroLab/platform_data/server.err.log</string>
+</dict>
+</plist>

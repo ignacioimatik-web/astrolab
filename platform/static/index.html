@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AstroLab — Plataforma</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'JetBrains Mono',monospace; background:#020617; color:#e2e8f0; min-height:100vh; }
+  .wrap { max-width:1200px; margin:0 auto; padding:1.5rem; }
+
+  header { display:flex; align-items:center; gap:.75rem; margin-bottom:1.5rem; }
+  .dot { width:12px; height:12px; border-radius:50%; background:#34d399; animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.45} }
+  h1 { font-size:1.25rem; font-weight:700; }
+  .sub { color:#94a3b8; font-size:.75rem; margin-left:1.7rem; }
+
+  nav { display:flex; gap:.5rem; margin-bottom:1.5rem; flex-wrap:wrap; }
+  .tab { padding:.55rem 1.1rem; border-radius:.6rem; border:1px solid #1e293b; background:#0f172a;
+         cursor:pointer; font-size:.8rem; font-family:inherit; color:#94a3b8; transition:.15s; }
+  .tab.active { background:rgba(52,211,153,.12); border-color:#34d399; color:#34d399; font-weight:600; }
+
+  .panel { display:none; }
+  .panel.active { display:block; animation:fade .25s; }
+  @keyframes fade { from{opacity:0; transform:translateY(4px)} to{opacity:1} }
+
+  .card { background:rgba(15,23,42,.6); border:1px solid #1e293b; border-radius:.9rem; padding:1.25rem; margin-bottom:1rem; }
+
+  h2 { font-size:.95rem; margin-bottom:.9rem; color:#fff; }
+  h2 .tag { color:#34d399; font-size:.7rem; vertical-align:middle; margin-left:.4rem; border:1px solid rgba(52,211,153,.4); padding:.1rem .45rem; border-radius:.4rem; }
+
+  /* plan */
+  .plan-box { white-space:pre-wrap; font-size:.78rem; line-height:1.65; color:#cbd5e1; }
+  .plan-box b { color:#34d399; }
+
+  /* steps */
+  .steps { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:.75rem; }
+  .step { border:1px solid #1e293b; border-radius:.75rem; padding:1rem; cursor:pointer; background:#0f172a;
+          transition:.15s; position:relative; }
+  .step:hover { border-color:#334155; transform:translateY(-2px); }
+  .step.sel { border-color:#34d399; background:rgba(52,211,153,.07); box-shadow:0 0 0 1px #34d399; }
+  .step h3 { font-size:.82rem; margin-bottom:.35rem; }
+  .step p { font-size:.68rem; color:#94a3b8; line-height:1.5; }
+  .step .k { position:absolute; top:.6rem; right:.7rem; font-size:.6rem; color:#34d399; font-weight:700; }
+
+  /* dropzone */
+  .drop { border:2px dashed #334155; border-radius:.9rem; padding:2.2rem 1rem; text-align:center;
+          color:#94a3b8; font-size:.8rem; cursor:pointer; transition:.15s; margin-top:1rem; }
+  .drop:hover, .drop.over { border-color:#34d399; color:#34d399; background:rgba(52,211,153,.04); }
+  .drop .big { font-size:.95rem; font-weight:600; color:#e2e8f0; margin-bottom:.35rem; }
+  .drop .files { margin-top:.6rem; font-size:.7rem; color:#22d3ee; }
+
+  .btn { background:#10b981; border:none; color:#022c22; font-family:inherit; font-weight:700; font-size:.8rem;
+         padding:.7rem 1.4rem; border-radius:.6rem; cursor:pointer; margin-top:1rem; transition:.15s; }
+  .btn:hover { background:#34d399; }
+  .btn:disabled { opacity:.4; cursor:not-allowed; }
+
+  /* jobs */
+  .job { border:1px solid #1e293b; border-radius:.75rem; padding:1rem; margin-bottom:.75rem; background:#0f172a; }
+  .job .top { display:flex; justify-content:space-between; align-items:center; margin-bottom:.55rem; }
+  .job .name { font-size:.8rem; font-weight:600; }
+  .job .fname { font-size:.65rem; color:#64748b; margin-top:.15rem; }
+  .badge { font-size:.62rem; padding:.25rem .6rem; border-radius:99px; font-weight:700; }
+  .b-queued { background:rgba(251,191,36,.12); color:#fbbf24; }
+  .b-running { background:rgba(34,211,238,.12); color:#22d3ee; }
+  .b-done { background:rgba(52,211,153,.12); color:#34d399; }
+  .b-error { background:rgba(251,113,133,.12); color:#fb7185; }
+  .bar { height:6px; background:#1e293b; border-radius:99px; overflow:hidden; }
+  .bar > div { height:100%; background:linear-gradient(90deg,#34d399,#22d3ee); transition:width .4s; }
+  .log { font-size:.65rem; color:#64748b; margin-top:.5rem; white-space:pre-wrap; max-height:90px; overflow-y:auto; }
+  .out { display:flex; gap:.75rem; flex-wrap:wrap; margin-top:.75rem; }
+  .out a { font-size:.68rem; color:#22d3ee; text-decoration:none; border:1px solid rgba(34,211,238,.35);
+           padding:.35rem .7rem; border-radius:.5rem; }
+  .out img { max-width:320px; border-radius:.5rem; border:1px solid #1e293b; }
+  .del { background:none; border:none; color:#fb7185; font-family:inherit; font-size:.65rem; cursor:pointer; }
+
+  .empty { text-align:center; color:#475569; font-size:.75rem; padding:2rem 0; }
+  .err { color:#fb7185; font-size:.72rem; margin-top:.5rem; }
+  footer { text-align:center; margin-top:2rem; color:#475569; font-size:.68rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="dot"></div>
+    <h1>AstroLab Platform</h1>
+    <span class="sub">Mac Studio · pipeline IA · La Mata de Morella</span>
+  </header>
+
+  <nav>
+    <button class="tab active" data-t="plan">🌙 Plan de noche</button>
+    <button class="tab" data-t="process">🛠️ Procesar</button>
+    <button class="tab" data-t="gallery">🖼️ Trabajos</button>
+  </nav>
+
+  <!-- PLAN -->
+  <section class="panel active" id="p-plan">
+    <div class="card">
+      <h2>Plan de esta noche <span class="tag">meteo + efemérides + objetivos</span></h2>
+      <div class="plan-box" id="plan-box">Cargando…</div>
+    </div>
+  </section>
+
+  <!-- PROCESAR -->
+  <section class="panel" id="p-process">
+    <div class="card">
+      <h2>1 · Elige operación</h2>
+      <div class="steps" id="steps"></div>
+    </div>
+    <div class="card">
+      <h2>2 · Sube tu imagen o vídeo</h2>
+      <div class="drop" id="drop">
+        <div class="big">Arrastra los ficheros aquí</div>
+        o haz clic para seleccionar · se admiten FITS, NEF, SER, PNG, JPG
+        <div class="files" id="files"></div>
+      </div>
+      <input type="file" id="file" multiple hidden>
+      <div class="err" id="drop-err"></div>
+      <button class="btn" id="go" disabled>🚀 Lanzar procesado</button>
+    </div>
+  </section>
+
+  <!-- GALERÍA / JOBS -->
+  <section class="panel" id="p-gallery">
+    <div class="card">
+      <h2>Trabajos <span class="tag">cola del Studio</span></h2>
+      <div id="jobs"><div class="empty">Cargando…</div></div>
+    </div>
+  </section>
+
+  <footer>AstroLab v7.2 · NexStar 6 SE + ASI715MC + D610 · Bortle 2-3</footer>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+let selStep = null, selFiles = [];
+
+// tabs
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+  $('#p-' + t.dataset.t).classList.add('active');
+  if (t.dataset.t === 'plan') loadPlan();
+  if (t.dataset.t === 'gallery') loadJobs();
+});
+
+// steps
+fetch('/api/steps').then(r => r.json()).then(steps => {
+  $('#steps').innerHTML = Object.entries(steps).map(([k, s]) => `
+    <div class="step" data-k="${k}">
+      <span class="k">${k}</span>
+      <h3>${s.name}</h3>
+      <p>${s.desc}</p>
+      <p style="margin-top:.4rem;color:#64748b">acepta: ${s.accept}</p>
+    </div>`).join('');
+  document.querySelectorAll('.step').forEach(el => el.onclick = () => {
+    document.querySelectorAll('.step').forEach(x => x.classList.remove('sel'));
+    el.classList.add('sel');
+    selStep = el.dataset.k;
+    $('#go').disabled = !(selStep && selFiles.length);
+  });
+});
+
+// dropzone
+const dz = $('#drop'), fi = $('#file');
+dz.onclick = () => fi.click();
+dz.ondragover = e => { e.preventDefault(); dz.classList.add('over'); };
+dz.ondragleave = () => dz.classList.remove('over');
+dz.ondrop = e => { e.preventDefault(); dz.classList.remove('over'); setFiles(e.dataTransfer.files); };
+fi.onchange = () => setFiles(fi.files);
+function setFiles(fs) {
+  selFiles = [...fs];
+  $('#files').textContent = selFiles.map(f => `📄 ${f.name} (${(f.size/1048576).toFixed(1)} MB)`).join(' · ');
+  $('#drop-err').textContent = '';
+  $('#go').disabled = !(selStep && selFiles.length);
+}
+
+// launch
+$('#go').onclick = async () => {
+  const fd = new FormData();
+  fd.append('step', selStep);
+  selFiles.forEach(f => fd.append('files', f));
+  $('#go').disabled = true; $('#go').textContent = '⏳ Enviando…';
+  try {
+    const r = await fetch('/api/jobs', { method: 'POST', body: fd });
+    const j = await r.json();
+    if (j.error) throw new Error(j.error);
+    $('#drop-err').textContent = '';
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+    document.querySelector('.tab[data-t="gallery"]').classList.add('active');
+    $('#p-gallery').classList.add('active');
+    loadJobs();
+    poll(j.id);
+  } catch (e) { $('#drop-err').textContent = '❌ ' + e.message; }
+  finally { $('#go').disabled = !(selStep && selFiles.length); $('#go').textContent = '🚀 Lanzar procesado'; }
+};
+
+// plan
+async function loadPlan() {
+  try {
+    const r = await fetch('/api/plan'); const d = await r.json();
+    $('#plan-box').innerHTML = d.ok ? escapeHtml(d.plan) : '❌ ' + d.error;
+  } catch (e) { $('#plan-box').textContent = '❌ ' + e.message; }
+}
+function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+// jobs
+async function loadJobs() {
+  try {
+    const r = await fetch('/api/jobs'); const jobs = await r.json();
+    if (!jobs.length) { $('#jobs').innerHTML = '<div class="empty">Aún no hay trabajos. Sube tu primera imagen en "Procesar". 🔭</div>'; return; }
+    $('#jobs').innerHTML = jobs.map(j => jobHtml(j)).join('');
+    jobs.filter(j => j.status === 'running' || j.status === 'queued').forEach(j => poll(j.id));
+  } catch (e) { $('#jobs').innerHTML = '<div class="empty">❌ ' + e.message + '</div>'; }
+}
+function jobHtml(j) {
+  const badge = { queued:'b-queued', running:'b-running', done:'b-done', error:'b-error' }[j.status] || 'b-queued';
+  const out = j.outputs || [];
+  return `<div class="job" id="job-${j.id}">
+    <div class="top">
+      <div><div class="name">${j.step_name}</div><div class="fname">${(j.files||[]).join(', ')}</div></div>
+      <div style="display:flex;gap:.6rem;align-items:center">
+        <span class="badge ${badge}">${j.status}</span>
+        <button class="del" onclick="delJob('${j.id}')">✕</button>
+      </div>
+    </div>
+    <div class="bar"><div style="width:${j.progress||0}%"></div></div>
+    <div class="log" id="log-${j.id}">${(j.log||[]).slice(-4).join('\n')}</div>
+    ${j.error ? `<div class="err">❌ ${escapeHtml(j.error)}</div>` : ''}
+    ${out.length ? `<div class="out">${out.map(o => o.preview
+      ? `<img src="/api/jobs/${j.id}/file/${o.name}">`
+      : `<a href="/api/jobs/${j.id}/file/${o.name}" download>⬇ ${o.name}</a>`).join('')}</div>` : ''}
+  </div>`;
+}
+async function poll(id) {
+  const r = await fetch('/api/jobs/' + id);
+  if (!r.ok) return;
+  const j = await r.json();
+  const el = document.getElementById('job-' + id);
+  if (el) el.outerHTML = jobHtml(j);
+  if (j.status === 'running' || j.status === 'queued') setTimeout(() => poll(id), 2500);
+}
+async function delJob(id) {
+  await fetch('/api/jobs/' + id, { method: 'DELETE' });
+  loadJobs();
+}
+
+loadPlan();
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+{
+  "ra": 250.423,
+  "dec": 36.461,
+  "scale": 10.006,
+  "orientation": 180.3,
+  "solver": "nova.astrometry.net"
+}

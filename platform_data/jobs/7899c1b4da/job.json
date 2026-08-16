@@ -1,0 +1,17 @@
+{
+  "id": "7899c1b4da",
+  "step": "platesolve",
+  "step_name": "Plate solve (ASTAP/nova)",
+  "status": "running",
+  "created": "2026-08-16T00:13:42+00:00",
+  "progress": 60,
+  "log": [
+    "[ 20%] ASTAP local (base d05)...",
+    "[ 60%] ASTAP no cuadró — nova.astrometry.net online..."
+  ],
+  "error": null,
+  "files": [
+    "m13w_dark.png"
+  ],
+  "started": "2026-08-16T00:13:43+00:00"
+}

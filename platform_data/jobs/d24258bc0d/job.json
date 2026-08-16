@@ -1,0 +1,19 @@
+{
+  "id": "d24258bc0d",
+  "step": "platesolve",
+  "step_name": "Plate solve (ASTAP/nova)",
+  "status": "done",
+  "created": "2026-08-16T00:16:20+00:00",
+  "progress": 100,
+  "log": [
+    "[ 20%] nova.astrometry.net online...",
+    "[ 90%] Resuelto: RA 250.423° Dec 36.461°",
+    "[100%] Listo"
+  ],
+  "error": null,
+  "files": [
+    "m13w_dark.png"
+  ],
+  "started": "2026-08-16T00:16:20+00:00",
+  "finished": "2026-08-16T00:16:57+00:00"
+}

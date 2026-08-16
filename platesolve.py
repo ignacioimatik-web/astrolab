@@ -85,7 +85,7 @@ def solve_astap(image_path, ra_hint=None, dec_hint=None, fov=None, timeout=180):
     cmd = [ASTAP, "-f", image_path, "-d", ASTAP_DB, "-D", "d05",
            "-o", os.path.join(HERE, "demo", "astap_solve"), "-wcs"]
     if ra_hint is not None:
-        cmd += ["-ra", str(ra_hint), "-spd", str(90.0 - dec_hint)]
+        cmd += ["-ra", str(ra_hint), "-spd", str(90.0 + dec_hint)]  # spd = 90 + Dec (¡no 90 − Dec!)
     if fov:
         cmd += ["-fov", str(fov)]
     try:
