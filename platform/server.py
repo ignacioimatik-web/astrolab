@@ -46,7 +46,7 @@ STEPS = {
     "gradient":  dict(name="Gradientes (GraXpert)",  ext=".fits",  desc="Elimina gradientes de cielo con IA", accept=".fits,.fit,.png"),
     "starless":  dict(name="Starless (StarNet)",     ext=".fits",  desc="Separa estrellas del fondo con nuestro U-Net", accept=".fits,.fit,.png"),
     "denoise":   dict(name="Denoise (N2N)",          ext=".fits",  desc="Reduce ruido con nuestra red Noise2Noise", accept=".fits,.fit,.png"),
-    "upscale":   dict(name="Upscale 4x (ESRGAN)",    ext=".png",   desc="Planetas: superresolución 4x con IA", accept=".png,.jpg,.jpeg"),
+    "upscale":   dict(name="Upscale 4x (ESRGAN)",    ext=".png",   desc="Planetas: superresolución 4x con IA (máx 2048 px de lado — para capturas del telescopio, no fotos D610 completas)", accept=".png,.jpg,.jpeg"),
     "platesolve":dict(name="Plate solve (ASTAP/nova)", ext=".png", desc="Calcula coordenadas RA/Dec de la imagen", accept=".png,.jpg,.jpeg,.fits,.fit"),
     "stack":     dict(name="Apilado (Siril)",        ext=".fits",  desc="Apila subs NEF/SER en una imagen limpia", accept=".nef,.ser,.cr2,.fits"),
 }
@@ -226,6 +226,22 @@ def run_step(job):
         from PIL import Image
         from realesrgan import RealESRGANer
         from basicsr.archs.rrdbnet_arch import RRDBNet
+
+        # --- GUARD: evitar upscale accidental de fotos enormes (caso 311 MB) ---
+        # Real-ESRGAN 4x está pensado para imágenes pequeñas/planetarias.
+        # Si el lado mayor supera el límite, abortamos con un mensaje claro.
+        from PIL import Image as _Img
+        _im = _Img.open(inp)
+        _w, _h = _im.size
+        MAX_SIDE = int(os.environ.get("ASTROLAB_UPSCALE_MAX", "2048"))
+        if max(_w, _h) > MAX_SIDE:
+            raise RuntimeError(
+                f"Upscale limitado a imágenes de máximo {MAX_SIDE}px de lado (esta tiene "
+                f"{_w}×{_h}px). El 4× generaría un PNG gigante sin mejorar la nitidez. "
+                f"Usa upscale solo para capturas pequeñas del telescopio; recorta o baja "
+                f"la resolución de la foto completa antes, o usa otra operación (gradients/"
+                f"starless/denoise) que sí le aportan a una D610.")
+
         set_progress(job, 25, "Real-ESRGAN: cargando pesos...")
         w = ROOT / "weights" / "RealESRGAN_x4plus.pth"
         model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4)
