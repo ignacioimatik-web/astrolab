@@ -81,11 +81,16 @@
 
   /* galería */
   .g-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:.9rem; }
-  .g-item { background:#0f172a; border:1px solid #1e293b; border-radius:.75rem; overflow:hidden; cursor:pointer; transition:.15s; }
+  .g-item { background:#0f172a; border:1px solid #1e293b; border-radius:.75rem; overflow:hidden; cursor:pointer; transition:.15s; position:relative; }
   .g-item:hover { border-color:#34d399; transform:translateY(-2px); }
   .g-item img { width:100%; height:150px; object-fit:cover; display:block; background:#020617; }
   .g-item .g-meta { padding:.6rem .75rem; font-size:.66rem; color:#94a3b8; }
   .g-item .g-meta b { color:#e2e8f0; font-size:.72rem; display:block; margin-bottom:.2rem; }
+  .g-del { position:absolute; top:.4rem; right:.4rem; background:rgba(15,23,42,.85); border:1px solid #334155;
+           color:#94a3b8; width:1.7rem; height:1.7rem; border-radius:.45rem; cursor:pointer; font-size:.8rem;
+           display:flex; align-items:center; justify-content:center; opacity:0; transition:.15s; }
+  .g-item:hover .g-del { opacity:1; }
+  .g-del:hover { color:#fb7185; border-color:#fb7185; background:rgba(251,113,133,.12); }
 
   /* lightbox */
   .lightbox { display:none; position:fixed; inset:0; background:rgba(2,6,23,.92); z-index:50;
@@ -203,6 +208,7 @@ async function loadGallery() {
     if (!items.length) { g.innerHTML = '<div class="empty">Aún no hay resultados. Procesa tu primera imagen en "Procesar". 🔭</div>'; return; }
     g.innerHTML = items.map(it => `
       <div class="g-item" onclick="openLb('${it.url}','${escapeHtml(it.step_name)}','${escapeHtml((it.files||[]).join(', '))}','${it.job}')">
+        <button class="g-del" title="Borrar (solo del panel)" onclick="event.stopPropagation(); delGal('${it.job}')">🗑</button>
         <img src="${it.url}" loading="lazy">
         <div class="g-meta"><b>${it.step_name}</b>${it.name} · ${(it.size/1048576).toFixed(2)} MB</div>
       </div>`).join('');
@@ -233,6 +239,16 @@ function lbZoom() {
   if (t) t.textContent = im.classList.contains('zoom') ? `✅ vista 1:1 (${im.naturalWidth}×${im.naturalHeight}px)` : '🔎 1:1';
 }
 function closeLb() { $('#lightbox').classList.remove('open'); }
+
+// borra un resultado del panel (local del Studio). La copia del NAS queda intacta.
+async function delGal(jobId) {
+  if (!confirm('¿Borrar este resultado del panel?\n(La copia del NAS se conserva.)')) return;
+  try {
+    const r = await fetch('/api/jobs/' + jobId, { method: 'DELETE' });
+    if (!r.ok) throw new Error('no se pudo borrar');
+    loadGallery();
+  } catch (e) { alert('❌ ' + e.message); }
+}
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeLb();
   if (e.key === 'z' || e.key === 'Z') lbZoom();
